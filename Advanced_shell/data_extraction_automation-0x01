@@ -1,22 +1,48 @@
 #!/bin/bash
 
-# Input and output files
-INPUT_FILE="data.json"
+# List of Pokémon JSON files
+POKEMON_FILES=("bulbasaur.json" "ivysaur.json" "venusaur.json" "charmander.json" "charmeleon.json")
+OUTPUT_FILE="pokemon_info.txt"
+ERROR_FILE="errors.txt"
 
-# Check if input file exists
-if [ ! -f "$INPUT_FILE" ]; then
-    echo "Error: $INPUT_FILE not found"
+# Function to log errors
+log_error() {
+    echo "$(date): $1" >> "$ERROR_FILE"
+}
+
+# Clear output file if it exists
+> "$OUTPUT_FILE"
+
+# Loop through Pokémon JSON files
+for file in "${POKEMON_FILES[@]}"; do
+    # Check if file exists
+    if [ ! -f "$file" ]; then
+        log_error "JSON file $file not found"
+        continue
+    fi
+
+    # Extract data using jq and format with awk and sed
+    jq -r '[.name, .height, .weight, .types[0].type.name] | @csv' "$file" 2>/dev/null | \
+    awk -F',' '{ 
+        name=$1; 
+        height=$2/10; 
+        weight=$3/10; 
+        type=$4; 
+        printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height 
+    }' | \
+    sed 's/"//g' | \
+    sed 's/\b\(.\)/\u\1/g' >> "$OUTPUT_FILE" || {
+        log_error "Failed to process $file"
+        continue
+    }
+done
+
+# Check if output file was created successfully
+if [ -s "$OUTPUT_FILE" ]; then
+    echo "Successfully extracted data for Pokémon and saved to $OUTPUT_FILE"
+    cat "$OUTPUT_FILE"
+else
+    log_error "No valid data processed"
+    echo "Error: No valid data processed. Check $ERROR_FILE for details."
     exit 1
 fi
-
-# Extract data using jq and format with awk and sed
-jq -r '[.name, .height, .weight, .types[0].type.name] | @csv' "$INPUT_FILE" | \
-awk -F',' '{ 
-    name=$1; 
-    height=$2/10; 
-    weight=$3/10; 
-    type=$4; 
-    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height 
-}' | \
-sed 's/"//g' | \
-sed 's/\b\(.\)/\u\1/g'

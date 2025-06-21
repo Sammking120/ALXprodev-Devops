@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Input and output files
+INPUT_FILE="data.json"
+
+# Check if input file exists
+if [ ! -f "$INPUT_FILE" ]; then
+    echo "Error: $INPUT_FILE not found"
+    exit 1
+fi
+
+# Extract data using jq and format with awk and sed
+jq -r '[.name, .height, .weight, .types[0].type.name] | @csv' "$INPUT_FILE" | \
+awk -F',' '{ 
+    name=$1; 
+    height=$2/10; 
+    weight=$3/10; 
+    type=$4; 
+    printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height 
+}' | \
+sed 's/"//g' | \
+sed 's/\b\(.\)/\u\1/g'

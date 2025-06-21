@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# List of Pokémon JSON files
+POKEMON_FILES=("bulbasaur.json" "ivysaur.json" "venusaur.json" "charmander.json" "charmeleon.json")
+OUTPUT_CSV="pokemon_report.csv"
+ERROR_FILE="errors.txt"
+TEMP_FILE="temp_data.csv"
+
+# Function to log errors
+log_error() {
+    echo "$(date): $1" >> "$ERROR_FILE"
+}
+
+# Initialize CSV file with headers
+echo "name,height,weight" > "$OUTPUT_CSV"
+
+# Loop through Pokémon JSON files to extract data
+for file in "${POKEMON_FILES[@]}"; do
+    # Check if file exists
+    if [ ! -f "$file" ]; then
+        log_error "JSON file $file not found"
+        continue
+    fi
+
+    # Extract name, height, and weight using jq and append to CSV
+    jq -r '[.name, (.height/10), (.weight/10)] | @csv' "$file" 2>/dev/null >> "$TEMP_FILE" || {
+        log_error "Failed to process $file"
+        continue
+    }
+done
+
+# Check if temp file has data
+if [ ! -s "$TEMP_FILE" ]; then
+    log_error "No valid data processed from JSON files"
+    echo "Error: No valid data processed. Check $ERROR_FILE for details."
+    rm -f "$TEMP_FILE"
+    exit 1
+fi
+
+# Process temp data to ensure proper CSV formatting and append to output
+cat "$TEMP_FILE" | sed 's/"//g' >> "$OUTPUT_CSV"
+rm -f "$TEMP_FILE"
+
+# Calculate averages using awk
+awk -F',' '
+    NR>1 { # Skip header
+        height_sum += $2
+        weight_sum += $3
+        count++
+    }
+    END {
+        if (count > 0) {
+            avg_height = height_sum / count
+            avg_weight = weight_sum / count
+            printf "\nAverage Height: %.1f meters\nAverage Weight: %.1f kg\n", avg_height, avg_weight
+        } else {
+            print "No valid data to calculate averages"
+        }
+    }
+' "$OUTPUT_CSV" | tee -a "$OUTPUT_CSV"
+
+# Check if CSV was created successfully
+if [ -s "$OUTPUT_CSV" ]; then
+    echo "Successfully generated report in $OUTPUT_CSV"
+    cat "$OUTPUT_CSV"
+else
+    log_error "Failed to generate report"
+    echo "Error: Failed to generate report. Check $ERROR_FILE for details."
+    exit 1
+fi

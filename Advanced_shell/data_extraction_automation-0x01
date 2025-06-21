@@ -28,7 +28,7 @@ for file in "${POKEMON_FILES[@]}"; do
         height=$2/10; 
         weight=$3/10; 
         type=$4; 
-        printf "%s is of type %s, weighs %.1fkg, and is %.1fm tall.\n", name, type, weight, height 
+        printf "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall." 
     }' | \
     sed 's/"//g' | \
     sed 's/\b\(.\)/\u\1/g' >> "$OUTPUT_FILE" || {

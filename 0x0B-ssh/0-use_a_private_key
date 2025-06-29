@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-# This script connects to a remote server using a private key for authentication.
-ssh -i ~/.ssh/school ubuntu@98.98.98.98
+#connects to server 54.236.51.196 with key in ~/.ssh/school
+
+ssh -i ~/.ssh/school ubuntu@54.236.51.196

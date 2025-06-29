@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script connects to a remote server using a private key for authentication.
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/school
+
+ssh -i ~/.ssh/school ubuntu@server
 
 
